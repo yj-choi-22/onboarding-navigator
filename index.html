@@ -287,12 +287,14 @@
   .section-header .meta { font-size: 13px; color: var(--ink-mute); letter-spacing: 0.04em; }
 
   .menu-grid {
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
+    width: 100%;
   }
   @media (min-width: 768px) {
     .menu-grid {
+      display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
       align-items: stretch;
@@ -309,7 +311,14 @@
     text-decoration: none;
     transition: all 0.15s ease;
     position: relative;
+    width: 100%;
     min-width: 0;
+    max-width: 100%;
+    writing-mode: horizontal-tb;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    box-sizing: border-box;
   }
   @media (min-width: 768px) {
     .menu-cat {
@@ -329,11 +338,16 @@
     font-size: 11px; letter-spacing: 0.12em;
     color: var(--ink-mute); font-weight: 600; margin-bottom: 6px;
     padding-right: 24px;
+    white-space: normal;
+    writing-mode: horizontal-tb;
   }
   .menu-cat h4 {
     font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--ink);
     padding-right: 24px;
     line-height: 1.35;
+    white-space: normal;
+    writing-mode: horizontal-tb;
+    word-break: keep-all;
   }
   @media (min-width: 768px) {
     .menu-cat h4 {
@@ -342,7 +356,12 @@
       min-height: 2.4em;
     }
   }
-  .menu-cat-items { font-size: 13px; color: var(--ink-soft); line-height: 1.65; }
+  .menu-cat-items {
+    font-size: 13px; color: var(--ink-soft); line-height: 1.65;
+    white-space: normal;
+    writing-mode: horizontal-tb;
+    word-break: keep-all;
+  }
   .menu-cat-items span { color: var(--ink-mute); }
 
   /* === Diagnosis === */
