@@ -1886,10 +1886,54 @@ function renderResult() {
         <div class="item-grid">${quickCards}</div>
       </div>
 
+      <!-- 진단 결과 이메일 발송 섹션 -->
+      <div id="email-capture-section" style="margin-top: 48px; padding: 32px 28px; background: linear-gradient(135deg, var(--brand-soft) 0%, #F5F4FE 100%); border-radius: 12px;">
+        <div id="email-form-wrap">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brand); font-weight: 700; margin-bottom: 10px;">진단 결과 이메일로 받기</div>
+            <h3 style="font-family: var(--serif); font-size: 22px; font-weight: 600; color: var(--ink); margin-bottom: 8px; letter-spacing: -0.015em;">진단 결과를 이메일로도 받아보시겠어요?</h3>
+            <p style="font-size: 13.5px; color: var(--ink-soft); line-height: 1.6;">
+              업종별 맞춤 자료와 함께 결과 리포트를 첨부해서 보내드려요.<br>
+              <span style="font-size: 12px; color: var(--ink-mute);">필수 아니에요 · 이메일만 입력하시면 됩니다</span>
+            </p>
+          </div>
+          <div style="max-width: 480px; margin: 0 auto;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <input
+                type="email"
+                id="email-input"
+                placeholder="회사 이메일을 입력해주세요"
+                style="flex: 1; min-width: 200px; padding: 14px 18px; border: 1.5px solid var(--line); border-radius: 8px; font-family: inherit; font-size: 14px; background: white; color: var(--ink); outline: none; transition: border-color 0.15s ease;"
+                onfocus="this.style.borderColor='var(--brand)'"
+                onblur="this.style.borderColor='var(--line)'"
+                onkeypress="if(event.key === 'Enter') submitEmailCapture()"
+              >
+              <button
+                onclick="submitEmailCapture()"
+                style="padding: 14px 24px; background: var(--brand); color: white; border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s ease;"
+                onmouseover="this.style.background='var(--brand-deep)'"
+                onmouseout="this.style.background='var(--brand)'"
+              >결과 받기 →</button>
+            </div>
+            <div id="email-error" style="display: none; font-size: 12px; color: #DC2626; margin-top: 8px; text-align: center;"></div>
+          </div>
+          <div style="text-align: center; margin-top: 16px; font-size: 11px; color: var(--ink-mute);">
+            입력하신 이메일은 진단 결과 발송 목적으로만 사용됩니다.
+          </div>
+        </div>
+        <div id="email-success" style="display: none; text-align: center; padding: 12px 0;">
+          <div style="font-size: 40px; margin-bottom: 12px;">✓</div>
+          <h3 style="font-family: var(--serif); font-size: 22px; font-weight: 600; color: var(--brand-deep); margin-bottom: 8px;">진단 결과를 보내드렸어요</h3>
+          <p style="font-size: 13.5px; color: var(--ink-soft); line-height: 1.6;">
+            <strong id="email-success-address" style="color: var(--brand);"></strong>로 결과 리포트가 발송됐어요.<br>
+            이메일 확인 부탁드립니다. 궁금한 점이 있으시면 언제든 회신 주세요.
+          </p>
+        </div>
+      </div>
+
       <div id="result-bottom-actions" style="text-align: center; margin-top: 56px; padding-top: 40px; border-top: 1px solid var(--line-soft);">
         <p style="font-size: 14px; color: var(--ink-mute); margin-bottom: 20px;">이 추천이 우리 조직에 맞지 않다면, 다른 답변으로 다시 진단받아볼 수 있어요.</p>
         <div style="display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;">
-          <button class="btn-ghost" onclick="downloadPDF()" style="padding: 16px 28px; font-size: 14px;">PDF로 저장</button>
           <button class="btn" onclick="restart()" style="padding: 16px 40px; font-size: 16px; letter-spacing: 0.02em;">다시 진단받기 ↻</button>
         </div>
       </div>
@@ -1994,8 +2038,8 @@ function selectOption(qid, v) {
     // 단일선택: 값 저장 + 부드러운 selected 표시 후 자동 다음 페이지
     state.answers[qid] = v;
     updateOptionStates(qid);
-    // 1초 딜레이: 선택한 답을 인지할 시간 확보
-    setTimeout(() => goNext(), 1000);
+    // 500ms 딜레이 + fadeUp 애니메이션 = 체감 약 1초
+    setTimeout(() => goNext(), 500);
   }
 }
 
@@ -2080,6 +2124,107 @@ function restart() {
 function downloadPDF() {
   window.print();
 }
+
+// ============================================================
+// 진단 결과 이메일 발송 · Phase 1 (프론트 UI + payload 준비)
+// Phase 2에서 실제 백엔드 API 호출로 교체 예정
+// ============================================================
+function submitEmailCapture() {
+  const emailInput = document.getElementById('email-input');
+  const errorEl = document.getElementById('email-error');
+  const email = emailInput.value.trim();
+
+  // 이메일 유효성 검증
+  if (!email) {
+    errorEl.textContent = '이메일을 입력해주세요.';
+    errorEl.style.display = 'block';
+    emailInput.focus();
+    return;
+  }
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(email)) {
+    errorEl.textContent = '이메일 형식이 올바르지 않아요.';
+    errorEl.style.display = 'block';
+    emailInput.focus();
+    return;
+  }
+  errorEl.style.display = 'none';
+
+  // payload 구성 - Phase 2에서 실제 API에 전송할 데이터
+  const a = state.answers;
+  const main = getMainPrescription(a);
+  const stage = inferStage(a);
+
+  const payload = {
+    // 사용자 이메일
+    email: email,
+
+    // 진단 응답 원본 (한글 라벨과 원본 값 모두 포함)
+    responses: {
+      industry:    { value: a.q1, label: CHIP_LABELS.q1[a.q1] || null },
+      dx_level:    { value: a.q2, label: CHIP_LABELS.q2[a.q2] || null },
+      culture:     { value: a.q3, label: CHIP_LABELS.q3[a.q3] || null },
+      pain_points: {
+        values: Array.isArray(a.pain) ? a.pain : (a.pain ? [a.pain] : []),
+        labels: (Array.isArray(a.pain) ? a.pain : (a.pain ? [a.pain] : []))
+                  .map(v => CHIP_LABELS.pain[v]).filter(Boolean),
+      },
+      work_hours:  { value: a.work_hours, label: CHIP_LABELS.work_hours[a.work_hours] || null },
+      flow_wish: {
+        values: Array.isArray(a.flow_wish) ? a.flow_wish : (a.flow_wish ? [a.flow_wish] : []),
+        labels: (Array.isArray(a.flow_wish) ? a.flow_wish : (a.flow_wish ? [a.flow_wish] : []))
+                  .map(v => CHIP_LABELS.flow_wish[v]).filter(Boolean),
+      },
+      support_pref: {
+        values: Array.isArray(a.q4) ? a.q4 : (a.q4 ? [a.q4] : []),
+        labels: (Array.isArray(a.q4) ? a.q4 : (a.q4 ? [a.q4] : []))
+                  .map(v => CHIP_LABELS.q4[v]).filter(Boolean),
+      },
+      roles: {
+        values: Array.isArray(a.q5) ? a.q5.filter(r => r !== 'skip') : [],
+        labels: (Array.isArray(a.q5) ? a.q5.filter(r => r !== 'skip') : [])
+                  .map(v => CHIP_LABELS.q5[v]).filter(Boolean),
+      },
+    },
+
+    // 자동 유추된 단계·처방 (백엔드에서 이메일 본문 생성 시 사용)
+    diagnosis: {
+      stage: stage,                       // before / early / using / deep
+      recommendation_tag: main.tag,       // 처방 태그 (예: '슈퍼100 AX 부트캠프')
+      recommendation_name: main.name,     // 처방 이름
+      recommendation_reason: main.reason, // 처방 근거 텍스트
+    },
+
+    // 메타
+    meta: {
+      submitted_at: new Date().toISOString(),
+      user_agent: navigator.userAgent,
+      referrer: document.referrer || 'direct',
+      utm_source: new URLSearchParams(window.location.search).get('csm_utm_source') || null,
+      utm_medium: new URLSearchParams(window.location.search).get('csm_utm_medium') || null,
+    },
+  };
+
+  // Phase 1: 콘솔에 payload 출력 (Phase 2에서 실제 API 호출로 교체)
+  console.log('[진단 결과 이메일 payload]', payload);
+
+  // Phase 2에서 이 부분을 아래와 같이 교체 예정:
+  // fetch('/api/send-diagnosis-email', {
+  //   method: 'POST',
+  //   headers: { 'Content-Type': 'application/json' },
+  //   body: JSON.stringify(payload),
+  // }).then(res => res.json()).then(...)
+
+  // 성공 UI 표시
+  document.getElementById('email-form-wrap').style.display = 'none';
+  const successEl = document.getElementById('email-success');
+  document.getElementById('email-success-address').textContent = email;
+  successEl.style.display = 'block';
+
+  // 부드럽게 스크롤
+  document.getElementById('email-capture-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function submitPrecise(e) {
   e.preventDefault();
   const form = e.target;
